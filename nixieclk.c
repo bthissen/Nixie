@@ -45,7 +45,7 @@ void nix_num(int nix_sel, int number){  //display given number to selected tube
     else if (nix_sel == 4){sel = 0xF8;} //select hours digit '1'sel = 0xF8;}
     else {sel = 0xFF;}                  //select all digits on
 
-    _delay_us(5800); //decrease for less flicker but more ghosting (increase for brighter digits) <--------
+    _delay_us(4700); //decrease for less flicker but more ghosting (increase for brighter digits) <--------
     
     switch(number){
         case 0 :
