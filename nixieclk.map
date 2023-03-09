@@ -21,6 +21,7 @@ Linker script and memory map
 Address of section .data set to 0x800100
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 LOAD nixieclk.o
+LOAD twi.o
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5\libc.a
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
@@ -115,7 +116,7 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
 .rela.plt
  *(.rela.plt)
 
-.text           0x00000000      0x74a
+.text           0x00000000      0x7ee
  *(.vectors)
  .vectors       0x00000000       0x68 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
                 0x00000000                __vectors
@@ -195,31 +196,32 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
                 0x0000008c                __vector_16
                 0x0000008c                __vector_18
                 0x0000008c                __vector_20
- .text          0x00000090      0x6b6 nixieclk.o
-                0x000003ac                button_set
-                0x000003e4                button_inc
+ .text          0x00000090      0x6f8 nixieclk.o
+                0x000001a2                button_set
+                0x000001da                button_inc
                 0x00000216                RTC_set
-                0x000001a2                twi_init
-                0x00000204                clk_init
-                0x000001d4                twi_write
+                0x00000302                clk_init
                 0x00000090                nix_num
                 0x00000162                cycle_nix
-                0x000001b4                twi_start
-                0x000001c4                twi_stop
-                0x00000420                main
-                0x000002b8                RTC_get
-                0x000001e8                twi_read
- .text          0x00000746        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
- .text          0x00000746        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
-                0x00000746                . = ALIGN (0x2)
+                0x00000308                main
+                0x0000026c                RTC_get
+ .text          0x00000788       0x62 twi.o
+                0x00000788                twi_init
+                0x000007ba                twi_write
+                0x0000079a                twi_start
+                0x000007aa                twi_stop
+                0x000007ce                twi_read
+ .text          0x000007ea        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .text          0x000007ea        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                0x000007ea                . = ALIGN (0x2)
  *(.text.*)
- .text.libgcc   0x00000746        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
- .text.libgcc   0x00000746        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
-                0x00000746                . = ALIGN (0x2)
+ .text.libgcc   0x000007ea        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .text.libgcc   0x000007ea        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                0x000007ea                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x00000746        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
-                0x00000746                exit
-                0x00000746                _exit
+ .fini9         0x000007ea        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+                0x000007ea                exit
+                0x000007ea                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -238,15 +240,16 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x00000746        0x4 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .fini0         0x000007ea        0x4 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
  *(.fini0)
-                0x0000074a                _etext = .
+                0x000007ee                _etext = .
 
-.data           0x00800100        0x0 load address 0x0000074a
+.data           0x00800100        0x0 load address 0x000007ee
                 0x00800100                PROVIDE (__data_start, .)
  *(.data)
  .data          0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
  .data          0x00800100        0x0 nixieclk.o
+ .data          0x00800100        0x0 twi.o
  .data          0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
  .data          0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
  *(.data*)
@@ -262,13 +265,14 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
  *(.bss)
  .bss           0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
  .bss           0x00800100        0x4 nixieclk.o
+ .bss           0x00800104        0x0 twi.o
  .bss           0x00800104        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
  .bss           0x00800104        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
  *(.bss*)
  *(COMMON)
                 0x00800104                PROVIDE (__bss_end, .)
-                0x0000074a                __data_load_start = LOADADDR (.data)
-                0x0000074a                __data_load_end = (__data_load_start + SIZEOF (.data))
+                0x000007ee                __data_load_start = LOADADDR (.data)
+                0x000007ee                __data_load_end = (__data_load_start + SIZEOF (.data))
 
 .noinit         0x00800104        0x0
                 0x00800104                PROVIDE (__noinit_start, .)
@@ -326,42 +330,53 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
 .debug_sfnames
  *(.debug_sfnames)
 
-.debug_aranges  0x00000000       0x20
+.debug_aranges  0x00000000       0x40
  *(.debug_aranges)
  .debug_aranges
                 0x00000000       0x20 nixieclk.o
+ .debug_aranges
+                0x00000020       0x20 twi.o
 
 .debug_pubnames
-                0x00000000       0xbb
+                0x00000000       0xcd
  *(.debug_pubnames)
  .debug_pubnames
-                0x00000000       0xbb nixieclk.o
+                0x00000000       0x78 nixieclk.o
+ .debug_pubnames
+                0x00000078       0x55 twi.o
 
-.debug_info     0x00000000      0x760
+.debug_info     0x00000000      0x5e7
  *(.debug_info)
- .debug_info    0x00000000      0x760 nixieclk.o
+ .debug_info    0x00000000      0x3e1 nixieclk.o
+ .debug_info    0x000003e1      0x206 twi.o
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev   0x00000000      0x240
+.debug_abbrev   0x00000000      0x2d6
  *(.debug_abbrev)
- .debug_abbrev  0x00000000      0x240 nixieclk.o
+ .debug_abbrev  0x00000000      0x1e4 nixieclk.o
+ .debug_abbrev  0x000001e4       0xf2 twi.o
 
-.debug_line     0x00000000      0x6a8
+.debug_line     0x00000000      0x7ad
  *(.debug_line)
- .debug_line    0x00000000      0x6a8 nixieclk.o
+ .debug_line    0x00000000      0x616 nixieclk.o
+ .debug_line    0x00000616      0x197 twi.o
 
-.debug_frame    0x00000000       0xe0
+.debug_frame    0x00000000       0xf0
  *(.debug_frame)
- .debug_frame   0x00000000       0xe0 nixieclk.o
+ .debug_frame   0x00000000       0x90 nixieclk.o
+ .debug_frame   0x00000090       0x60 twi.o
 
-.debug_str      0x00000000      0x1c2
+.debug_str      0x00000000      0x1d4
  *(.debug_str)
- .debug_str     0x00000000      0x1c2 nixieclk.o
-                                0x1fd (size before relaxing)
+ .debug_str     0x00000000      0x189 nixieclk.o
+                                0x1c4 (size before relaxing)
+ .debug_str     0x00000189       0x4b twi.o
+                                0x154 (size before relaxing)
 
-.debug_loc      0x00000000      0x1b2
+.debug_loc      0x00000000      0x17d
  *(.debug_loc)
- .debug_loc     0x00000000      0x1b2 nixieclk.o
+ .debug_loc     0x00000000      0x157 nixieclk.o
+ .debug_loc     0x00000157       0x26 twi.o
 
 .debug_macinfo
  *(.debug_macinfo)

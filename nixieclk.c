@@ -1,13 +1,15 @@
 /**************************************************************************
  * Bradley Thissen
  * 
- * Nixie Clock Control Software (v1.0)
+ * Nixie Clock Control Software (v1.5)
  * 
  * writes/reads clock info from RTC (DS3231M)
  * drives IN-12B (x4) Nixie Tubes with neon indicators for display
  * includes every hour tube cycle for cathode poisoning mitigation
  * 
- * 3/04/2023
+ * Latest version adds twi.h for I2C implementation and toggle 24hr mode
+ * 
+ * 3/08/2023
 ***************************************************************************/
 #define F_CPU 16000000UL		//set uC clk to 16MHz
 
@@ -16,6 +18,7 @@
 #include <util/delay.h>			//embedded libraries and delay/timings
 #include <string.h>				//c String libraries
 #include <stdbool.h>            //bool (binary algebra libraries)
+#include "twi.h"                //incorporate TWI (I2C) custom file for implementation
 
 #define RTC_read 0b11010001		//TWI DS3231 adress (1101000) W/R set to 1
 #define RTC_write 0b11010000	//TWI DS3231 adress (1101000) W/R set to 0
@@ -45,7 +48,7 @@ void nix_num(int nix_sel, int number){  //display given number to selected tube
     else if (nix_sel == 4){sel = 0xF8;} //select hours digit '1'sel = 0xF8;}
     else {sel = 0xFF;}                  //select all digits on
 
-    _delay_us(4700); //decrease for less flicker but more ghosting (increase for brighter digits) <--------
+    _delay_us(4800); //decrease for less flicker but more ghosting (increase for brighter digits) <--------
     
     switch(number){
         case 0 :
@@ -98,41 +101,6 @@ void cycle_nix(){
     //}
     PORTD = 0x00;                               //no digit selected if out of loop (cycle complete)
 }
-
-/***********************BASE TWI (I2C) Functions*********************************/
-//initialize TWI (I2C)
-void twi_init() {
-	TWSR=0x00;	//set prescale bits to zero (1)
-	TWBR=0x48;	//[Fclk / (2*TWBR*prescale + 16) ] = SCL	(16MHz, TWBR=72) SCL ~ 100kHz
-	TWCR=0x04;	//enable TWU register	(1<<TWEN)
-}
-
-//Start TWI Communication
-void twi_start() {
-	TWCR = ((1<<TWINT) | (1<<TWSTA) | (1<<TWEN));
-	while (!(TWCR & (1<<TWINT)));		//loop until complete
-}
-
-//End TWI communication
-void twi_stop(void) {
-	TWCR = ((1<<TWINT) | (1<<TWEN) | (1<<TWSTO));
-	_delay_us(100);	//delay a short time for cleanup
-}
-
-//Output data over TWI (I2C)
-void twi_write(uint8_t v_twidata){
-	TWDR = v_twidata;					//set data into buffer register
-	TWCR = ((1<<TWINT) | (1<<TWEN));	//reset interrupt flag and  enable
-	while (!(TWCR & (1<<TWINT)));		//loop until complete
-}
-
-//Read data from TWI (I2C)
-uint8_t twi_read(unsigned int ack) {
-	TWCR = ((1<<TWINT) | (1<<TWEN) | (ack<<TWEA));			//reset flag, enable, set acknowledge bit
-	while ( !(TWCR & (1 <<TWINT)));							//loop until complete
-    return TWDR;
-}
-/***********************BASE TWI (I2C) Functions*********************************/
 
 /*************************DS3231 initialization**********************************/
 void clk_init(void){
@@ -206,16 +174,19 @@ int main(){
 
     struct rtc_data set;
     //time to load before bootup for testing only
-    //set.min = 0x58;                      //load minutes byte (0x58 == 58 minutes)
-    //set.hour = 0x71;                     //load hours byte (set to 11 hours || bit 5 PM indicate)
+    set.min = 0x58;                     //load minutes byte (0x58 == 58 minutes)
+    set.hour = 0x71;                    //load hours byte (set to 11 hours || bit 5 PM indicate)
 
-    clk_init();		                     //initialize DS3231 for operation
-	//RTC_set(set);                      //update RTC with default time (if needed)
+    clk_init();		                    //initialize DS3231 for operation
+	RTC_set(set);                       //update RTC with default time (if needed)
 
-    cycle_nix();                         //cycle Nixie Tubes on startup
+    cycle_nix();                        //cycle Nixie Tubes on startup
 
     struct rtc_data clock;
-    clock = RTC_get(clock);              //read the current time
+    clock.twelve_hr;                    //default to 12 hour timemode on startup (PM indicate enabled)
+    clock = RTC_get(clock);             //read the current time
+
+    clock.twelve_hr = ((0x40 & clock.hour) >> 6); //grab current clock mode (12 or 24 from bit 6 hour reg)
 
     while(1){
 
@@ -230,42 +201,121 @@ int main(){
             }
         }
 
-        if((button_inc() == 1) && (timeset != 0)){
-            
-            switch(timeset){
-                case 1 :                                    //increment minutes
-                    clock.min0++;
-                    if (clock.min0 > 9){
-                        clock.min0 = 0x00;
-                        clock.min1++;
-                        if(clock.min1 > 0x05){clock.min1 = 0x00;}
-                    }
-                    clock.min = ((clock.min1 << 4) | (clock.min0));
-                    break;
+        if(button_inc() == 1){ 
+            if(timeset != 0){
+                switch(timeset){
+                    case 1 :                                    //increment minutes
+                        clock.min0++;
+                        if (clock.min0 > 9){
+                            clock.min0 = 0x00;
+                            clock.min1++;
+                            if(clock.min1 > 0x05){clock.min1 = 0x00;}
+                        }
+                        clock.min = ((clock.min1 << 4) | (clock.min0));
+                        break;
 
-                case 2 :                                   //increment hours and return 12hr setting
-                    //clock.hour = (0x1F & clock.hour);        
-                    clock.hour0++;
-                    if (clock.hour0 > 0x09){
-                        clock.hour0 = 0x00;
-                        clock.hour1 = 0x01;
+                    case 2 :                                   //increment hours and return 12hr setting
+                        //clock.hour = (0x1F & clock.hour);        
+                        clock.hour0++;
+                        if (clock.hour0 > 0x09){
+                            clock.hour0 = 0x00;
+                            clock.hour1++;   // = 0x01;
+                        }
+
+                        if(clock.twelve_hr == 1){   //12 hour mode selected
+                            if((clock.hour1 == 0x01) && (clock.hour0 > 0x02)){
+                                clock.hour1 = 0;
+                                clock.hour0 = 1;
+                            }
+                            
+                            //separate timesetting for 12/24 hour mode
+                            if((clock.hour1 == 1) && (clock.hour0 == 2)){
+                                clock.PM = !clock.PM;              //toggle AM or PM
+                            }
+                            clock.hour = ((clock.hour1 << 4) | (clock.hour0));           //upload new time to register
+                            clock.hour = ((0x01 << 6) | (clock.PM << 5) | (clock.hour)); //for 12hr (PM mode)
+                        }
+
+                        else{   //24 hour mode selected
+                            if((clock.hour1 == 0x02) && (clock.hour0 > 0x03)){
+                                clock.PM = 0;
+                                clock.hour1 = 0;
+                                clock.hour0 = 0;
+                            }
+                            clock.hour = ((clock.hour1 << 4) | (clock.hour0));           //upload new time to register
+                            clock.hour = ((0x3F) & (clock.hour));                        //for 24hr mode
+                        }
+                        break;
+
+                    default :
+                        //colon = !colon;
+                        break;
+                }
+            }
+
+            else{ //timeset not enabled toggling to 24hr mode
+                if (clock.twelve_hr == 1 && clock.PM == 1){
+                
+                    clock.hour1 = (clock.hour1 & 0x01); //mask out the PM bit 
+                    set.hour0 = (clock.hour0 + 0x02);
+
+                    if(clock.hour0 > 0x09){
+                        clock.hour1++;
+                        set.hour0 = (clock.hour0 - 0x0A);
                     }
 
-                    if((clock.hour1 == 0x01) && (clock.hour0 > 0x02)){
-                        clock.hour1 = 0;
-                        clock.hour0 = 1;
+                    set.hour1 = (clock.hour1 + 0x01);
+                    set.hour = (0x3F & ((set.hour1 << 4) | (set.hour0)));
+                    clock.twelve_hr = 0;
+                    clock.PM = 0;           //clear the PM bool
+
+                    //update time to RTC
+                    set.min = clock.min; //update minutes reg to current time for upload 
+                    RTC_set(set);
+                }
+
+                else if (clock.twelve_hr == 1 && clock.PM == 0){ 
+                    //if zero hour need adjust 12:xx to 00:xx
+                    if(clock.hour1 == 1 & clock.hour0 == 2){
+                        set.hour = 0x00; //set hour to zero with PM off and 24 mode
                     }
+
+                    //set 24hr mode and feed current time
+                    else{set.hour = (0x3F & ((clock.hour1 << 4) | clock.hour0));}
+                    clock.twelve_hr = 0;
+                    set.min = clock.min;
+                    RTC_set(set);
+                }
+
+                //convert 24hr to 12hr time
+                else if (clock.twelve_hr == 0) {
+
+                    set.hour1 = clock.hour1;
+                    set.hour0 = clock.hour0;
                     
-                    if((clock.hour1 == 1) && (clock.hour0 == 2)){
-                        clock.PM = !clock.PM;              //toggle AM or PM
-                    }
-                    clock.hour = ((clock.hour1 << 4) | (clock.hour0));
-                    clock.hour = ((0x01 << 6) | (clock.PM << 5) | (clock.hour));
-                    break;
+                    //set to PM state
+                    if(clock.hour > 0x12){
+                        set.hour1 = (clock.hour1 - 0x01);
+                        set.hour0 = (clock.hour0 - 0x02);
 
-                default :
-                    //anything to add here?
-                    break;
+                        clock.PM = 1;
+                    }
+
+                    //0 hour (between 2400 and 100 hours)
+                    if((clock.hour1 == 0x00) && (clock.hour0 == 0x00)){
+                        set.hour1 = 0x01;
+                        set.hour0 = 0x02;  //set hour to 12:xx (AM)
+
+                        clock.PM = 0;
+                    }
+
+                    set.hour = ((0x01 << 6) | (clock.PM << 5) | (set.hour1 << 4) | (set.hour0));
+                    clock.twelve_hr = 1;
+                    
+                    //update time to RTC
+                    set.min = clock.min; //update minutes reg to current time for upload 
+                    RTC_set(set);
+                }
             }
         }  
         /************************UI Programming**************************************/
@@ -288,7 +338,7 @@ int main(){
         clock.hour1 = ((0xF0 & clock.hour) >> 4);
         clock.hour1 = (clock.hour1 & 0x03);
 
-        if(clock.hour1 == 0x02){
+        if((clock.hour1 == 0x02) && (clock.twelve_hr == 1)){
             clock.PM = 1;
             clock.hour1 = 0x00;
         }
@@ -300,6 +350,8 @@ int main(){
         else if((clock.hour1 == 0x00) || (clock.hour1 == 0x01)){
             clock.PM = 0;
         }
+
+        else if(clock.twelve_hr == 0){clock.PM = 0;}
 
         PORTB = ((colon << PB0) | (clock.PM << PB1));
 

@@ -1,8 +1,8 @@
 PRG            =nixieclk
 
-OBJS            = $(PRG).o
+OBJS            = $(PRG).o twi.o
 
-SRCS		   =nixieclk.c
+SRCS		   =nixieclk.c twi.c
 
 MCU_TARGET     = atmega328p
 OPTIMIZE       = -O2    # options are 1, 2, 3, s
