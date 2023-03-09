@@ -174,11 +174,11 @@ int main(){
 
     struct rtc_data set;
     //time to load before bootup for testing only
-    set.min = 0x58;                     //load minutes byte (0x58 == 58 minutes)
-    set.hour = 0x71;                    //load hours byte (set to 11 hours || bit 5 PM indicate)
+    //set.min = 0x58;                     //load minutes byte (0x58 == 58 minutes)
+    //set.hour = 0x71;                    //load hours byte (set to 11 hours || bit 5 PM indicate)
 
     clk_init();		                    //initialize DS3231 for operation
-	RTC_set(set);                       //update RTC with default time (if needed)
+	//RTC_set(set);                       //update RTC with default time (if needed)
 
     cycle_nix();                        //cycle Nixie Tubes on startup
 
